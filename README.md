@@ -2,11 +2,18 @@
 
 ## Overview
 
-HPMC is a fully custom C++/CUDA implementation of an MLP for MNIST classification, achieving over **8× training speedup** compared to the PyTorch baseline on an RTX 4060 Laptop GPU. It is built entirely from scratch with low-level CUDA kernel optimization and does not rely on cuBLAS or cuDNN.
-
+HPMC is a fully custom C++/CUDA implementation of an MLP for MNIST classification, achieving over **8× training speedup** compared to the PyTorch baseline on an RTX 4060 Laptop GPU. This is a fully custom CUDA training pipeline built from scratch, with no use of `cuBLAS` or `cuDNN`.
+The model is a 2-layer MLP (784 &rightarrow; 320&rightarrow;160&rightarrow;10) for MNIST digit classification.
 For the performance measurements, the CUDA implementation was executed through Visual Studio Code (see `.vscode` for configuration details), while the PyTorch baseline was run in a Jupyter Notebook environment.
 
-**Note** : In `mnist.cu`, the last batch is omitted for implementation simplicity
+**Note** : In `mnist.cu`, the last batch is omitted for implementation simplicity.
+
+## Evaluation (30 epochs)
+
+| Configuration      | Accuracy | Time per Epoch | Speedup |
+|:-----------------:|:--------:|:--------------:|:-------:|
+| PyTorch Baseline  | **97.81%** | 1927ms     | -    |
+| HPMC (Current)    | 97.24%     |**218ms**   |**8.84×** |
 
 ## Build & Run
 
@@ -65,8 +72,8 @@ https://leimao.github.io/blog/Proper-CUDA-Error-Checking/
 ## Kernel Design and Optimizations
 
 ### `forward_relu`
-- **Grid Configuration**: 2D grid of shape `(ceil(output_dim / block_size), ceil(batch_size / block_size))`
-- **Block Configuration**: 2D block of shape `(block_size, block_size)`, where `block_size = 16`
+- **Grid**: 2D grid of shape `(ceil(output_dim / block_size), ceil(batch_size / block_size))`
+- **Block**: 2D block of shape `(block_size, block_size)`, where `block_size = 16`
 - **Optimizations**:
   - Shared memory tiling for `XW + b`
   - Bank conflict mitigation via padding in `w_tile`
@@ -74,52 +81,40 @@ https://leimao.github.io/blog/Proper-CUDA-Error-Checking/
   - ReLU fused directly into the forward kernel
 
 ### `forward_softmax`
-- **Grid / Block Configuration**: Same as `forward_relu`
+- **Grid / Block**: Same as `forward_relu`
 - **Optimizations**:
   - Shared memory tiling for matrix multiplication
   - Kernel fusion of forward pass and softmax normalization
-  - Full softmax computation within a single kernel (max-reduction, exponentiation, and normalization)
 
 ### `backward`
-- **Grid / Block Configuration**: Same as `forward_relu`
+- **Grid / Block**: Same as `forward_relu`
 - **Optimizations**:
   - Shared memory tiling for both weights and input gradients
   - Loop unrolling in the inner product
   - ReLU derivative fused into the backward computation
 
 ### `cross_entropy`
-- **Grid Configuration**: 1D grid over batch size
-- **Block Configuration**: 1D block of size `block_size`
+- **Grid**: 1D grid over batch size
+- **Block**: 1D block of size `block_size`
 - **Optimizations**:
-  - Warp-level reduction via `__shfl_down_sync` without shared memory
+  - Warp-level reduction (`__shfl_down_sync`)
 
 ### `cross_entropy_backwards`
-- **Grid Configuration**: 1D grid over `batch_size * output_dim`
-- **Block Configuration**: 1D block of size `block_size`
-- **Optimizations**:
-  - Vectorized flat kernel to compute loss gradients efficiently
+- **Grid**: 1D grid over `ceil(batch_size * output_dim / block_size)`
+- **Block**: 1D block of size `block_size`
 
 ### `update_layer`
-- **Grid Configuration**: 2D grid of shape `(ceil(width / block_size), ceil(height / block_size))`
-- **Block Configuration**: 2D block of shape `(block_size, block_size)`
+- **Grid**: 2D grid of shape `(ceil(width / block_size), ceil(height / block_size))`
+- **Block**: 2D block of shape `(block_size, block_size)`
 - **Optimizations**:
-  - Single fused kernel to update both weights and biases
-  - Loop-based reduction over batch dimension
-  - `atomicAdd` used for bias updates (saves 250ms with <0.05% accuracy loss)
-
-## Performance Summary (30 epochs)
-
-| Configuration      | Accuracy | Time per Epoch | Speedup |
-|:-----------------:|:--------:|:--------------:|:-------:|
-| PyTorch Baseline  | **97.81%** | 1927ms     | -    |
-| HPMC (Current)    | 97.24%     |**218ms**   |**8.84×** |
+  - Single fused kernel to update both weights and biases with `atomicAdd`
 
 ## Planned Enhancements
 
 - Eliminate conditional branches (e.g., `if (row < height && col < width)`) to reduce warp divergence, assuming dimension alignment
 - Split `forward_softmax` into separate `forward` and `softmax` kernels to eliminate sync overhead
-- Replace `.csv` data loading with a binary preprocessed dataset to reduce initialization latency (~2s)
-- Implement WMMA-based FP16 TensorCore path with mixed-precision accumulation (FP16 matmul, FP32 accumulate)
+- Replace `.csv` data loading with a binary preprocessed dataset to reduce CPU I/O Bound (~2s)
+- Implement `wmma::mma_sync` FP16 TensorCore path with mixed-precision accumulation (FP16 matmul, FP32 accumulate)
 - Optimize GEMM with memory-coalesced transpose and shared memory alignment (non-TensorCore)
 - Use loop-unrolled vectorized memory loads (e.g., `float4`, `__half2`) for bandwidth efficiency
 
