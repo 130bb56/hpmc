@@ -6,7 +6,7 @@ HPMC is a fully custom C++/CUDA implementation of an MLP for MNIST classificatio
 
 For the performance measurements, the CUDA implementation was executed through Visual Studio Code (see `.vscode` for configuration details), while the PyTorch baseline was run in a Jupyter Notebook environment.
 
-Note: In `mnist.cu`, the last batch is omitted for implementation simplicity.
+**Note** : In `mnist.cu`, the last batch is omitted for implementation simplicity
 
 ## Build & Run
 
@@ -60,6 +60,8 @@ inline void cudaKernelAssert(const char *file, const int line, bool abort = true
     }
 }
 ```
+For more background on proper CUDA error handling, see: 
+https://leimao.github.io/blog/Proper-CUDA-Error-Checking/
 ## Kernel Design and Optimizations
 
 ### `forward_relu`
