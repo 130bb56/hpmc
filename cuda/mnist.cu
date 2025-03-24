@@ -319,11 +319,11 @@ __global__ void backward(
     const int batch_size,
     const int input_dim,
     const int output_dim,
-    const float *__restrict__ weight,       // [input_dim][output_dim]
+    const float *__restrict__ weight,       // (input_dim, output_dim)
     const float *__restrict__ bias,         // unused
-    float *__restrict__ d_l,                // [batch_size][input_dim]
-    float *__restrict__ out_d_l,            // [batch_size][output_dim]
-    const float *__restrict__ activation    // [batch_size][output_dim]
+    float *__restrict__ d_l,                // (batch_size, input_dim)
+    float *__restrict__ out_d_l,            // (batch_size, output_dim)
+    const float *__restrict__ activation    // (batch_size, output_dim)
 ) {
     int col = blockIdx.x * blockDim.x + threadIdx.x;  // output_dim 인덱스
     int row = blockIdx.y * blockDim.y + threadIdx.y;  // batch_size 인덱스

@@ -8,12 +8,16 @@ For the performance measurements, the CUDA implementation was executed through V
 
 **Note** : In `mnist.cu`, the last batch is omitted for implementation simplicity.
 
-## Evaluation (30 epochs)
+## Evaluation
 
-| Configuration      | Accuracy | Time per Epoch | Speedup |
-|:-----------------:|:--------:|:--------------:|:-------:|
-| PyTorch Baseline  | **97.81%** | 1927ms     | -    |
-| HPMC (Current)    | 97.24%     |**218ms**   |**8.84×** |
+### Experiment Settings
+- `Epochs = 30`, `batch_size = 64`
+- GPU Metrics: Collected log using `nvidia-smi --query-gpu=memory.used,memory.total,utilization.gpu --format=csv -l 1 > metric.log`
+
+| Configuration      | Accuracy | Time per Epoch | GPU Utilization | GPU Memory Usage |
+|:-----------------:|:--------:|:--------------:|:-------:|:-------:|
+| PyTorch Baseline  | **97.81%** | 1927ms          |34%      |145MiB
+| HPMC (Ours)    | 97.24%     |**218ms**|**64%**  |**126MiB**
 
 ## Build & Run
 
@@ -69,13 +73,14 @@ inline void cudaKernelAssert(const char *file, const int line, bool abort = true
 ```
 For more background on proper CUDA error handling, see: 
 https://leimao.github.io/blog/Proper-CUDA-Error-Checking/
+
 ## Kernel Design and Optimizations
 
 ### `forward_relu`
 - **Grid**: 2D grid of shape `(ceil(output_dim / block_size), ceil(batch_size / block_size))`
 - **Block**: 2D block of shape `(block_size, block_size)`, where `block_size = 16`
 - **Optimizations**:
-  - Shared memory tiling for `XW + b`
+  - Shared memory tiling for `GEMM`(`XW + b`)
   - Bank conflict mitigation via padding in `w_tile`
   - Loop unrolling (`#pragma unroll`)
   - ReLU fused directly into the forward kernel
@@ -83,15 +88,14 @@ https://leimao.github.io/blog/Proper-CUDA-Error-Checking/
 ### `forward_softmax`
 - **Grid / Block**: Same as `forward_relu`
 - **Optimizations**:
-  - Shared memory tiling for matrix multiplication
-  - Kernel fusion of forward pass and softmax normalization
+  - Shared memory tiling for `GEMM`(`XW + b`)
+  - Kernel fusion of forward pass and softmax
 
 ### `backward`
 - **Grid / Block**: Same as `forward_relu`
 - **Optimizations**:
-  - Shared memory tiling for both weights and input gradients
-  - Loop unrolling in the inner product
-  - ReLU derivative fused into the backward computation
+  - Shared memory tiling for `d_l @ W`
+  - Loop unrolling (`#pragma unroll`)
 
 ### `cross_entropy`
 - **Grid**: 1D grid over batch size
@@ -102,19 +106,22 @@ https://leimao.github.io/blog/Proper-CUDA-Error-Checking/
 ### `cross_entropy_backwards`
 - **Grid**: 1D grid over `ceil(batch_size * output_dim / block_size)`
 - **Block**: 1D block of size `block_size`
+- **Optimizations**:
+  - Eliminate conditional branch `col < height * width`
+  - Computes `d_l = y_hat - y` directly to reduce computation overhead
 
 ### `update_layer`
 - **Grid**: 2D grid of shape `(ceil(width / block_size), ceil(height / block_size))`
 - **Block**: 2D block of shape `(block_size, block_size)`
 - **Optimizations**:
-  - Single fused kernel to update both weights and biases with `atomicAdd`
+  - Single fused kernel to update both weights and biases with `atomicAdd()`
 
-## Planned Enhancements
+## Optional Plans
 
 - Eliminate conditional branches (e.g., `if (row < height && col < width)`) to reduce warp divergence, assuming dimension alignment
 - Split `forward_softmax` into separate `forward` and `softmax` kernels to eliminate sync overhead
 - Replace `.csv` data loading with a binary preprocessed dataset to reduce CPU I/O Bound (~2s)
-- Implement `wmma::mma_sync` FP16 TensorCore path with mixed-precision accumulation (FP16 matmul, FP32 accumulate)
+- Use TensorCore  `wmma::mma_sync` with FP32 / FP16 mixed precision
 - Optimize GEMM with memory-coalesced transpose and shared memory alignment (non-TensorCore)
 - Use loop-unrolled vectorized memory loads (`reinterpret_cast<float4*>`)
 
