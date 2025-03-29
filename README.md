@@ -17,7 +17,7 @@ For the performance measurements, the CUDA implementation was executed through V
 | Configuration      | Accuracy | Time per Epoch | GPU Utilization | GPU Memory Usage |
 |:-----------------:|:--------:|:--------------:|:-------:|:-------:|
 | PyTorch Baseline  | 97.776% | 1961ms          |34%      |145MiB
-| HPMC (Ours)    | **97.837%**     |**218ms**|**64%**  |**126MiB**
+| **HPMC (Ours)**   | **97.837%**     |**218ms**|**64%**  |**126MiB**
 
 ## Build & Run
 
