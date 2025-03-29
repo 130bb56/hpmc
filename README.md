@@ -2,22 +2,22 @@
 
 ## Overview
 
-HPMC is a fully custom C++/CUDA implementation of an MLP for MNIST classification, achieving over **8× training speedup** compared to the PyTorch baseline on an RTX 4060 Laptop GPU. This is a fully custom CUDA training pipeline built from scratch, with no use of `cuBLAS` or `cuDNN`.
-The model is a 2-layer MLP (784 &rightarrow; 320 &rightarrow; 160 &rightarrow; 10) for MNIST digit classification.
+HPMC is a fully custom C++/CUDA implementation of an MLP for MNIST classification, achieving over **8× training speedup** compared to the PyTorch baseline on an RTX 4060 Laptop GPU. This is a fully custom CUDA training pipeline built from scratch, without using other libraries, such as `cuBLAS` or `cuDNN`.
+The model is a 2-hidden-layer MLP (784 &rightarrow; 320 &rightarrow; 160 &rightarrow; 10) for MNIST digit classification.
 For the performance measurements, the CUDA implementation was executed through Visual Studio Code (see `.vscode` for configuration details), while the PyTorch baseline was run in a Jupyter Notebook environment.
 
-**Note** : In `mnist.cu`, the last batch is omitted for implementation simplicity.
+**Note**: For implementation simplicity, the last batch is omitted in both `mnist.cu` and `mnist.ipynb`. 
 
 ## Evaluation
 
 ### Experiment Settings
-- `Epochs = 30`, `batch_size = 64`
+- `Epochs = 30`, `batch_size = 64`, `lr = 0.03`
 - GPU Metrics: Collected log using `nvidia-smi --query-gpu=memory.used,memory.total,utilization.gpu --format=csv -l 1 > metric.log`
 
 | Configuration      | Accuracy | Time per Epoch | GPU Utilization | GPU Memory Usage |
 |:-----------------:|:--------:|:--------------:|:-------:|:-------:|
-| PyTorch Baseline  | **97.81%** | 1927ms          |34%      |145MiB
-| HPMC (Ours)    | 97.24%     |**218ms**|**64%**  |**126MiB**
+| PyTorch Baseline  | 97.776% | 1961ms          |34%      |145MiB
+| HPMC (Ours)    | **97.837%**     |**218ms**|**64%**  |**126MiB**
 
 ## Build & Run
 
@@ -80,7 +80,7 @@ https://leimao.github.io/blog/Proper-CUDA-Error-Checking/
 - **Grid**: 2D grid of shape `(ceil(output_dim / block_size), ceil(batch_size / block_size))`
 - **Block**: 2D block of shape `(block_size, block_size)`, where `block_size = 16`
 - **Optimizations**:
-  - Shared memory tiling for `GEMM`(`XW + b`)
+  - Shared memory tiling for `GEMM`(`X @ W + b`)
   - Bank conflict mitigation via padding in `w_tile`
   - Loop unrolling (`#pragma unroll`)
   - ReLU fused directly into the forward kernel
@@ -88,20 +88,23 @@ https://leimao.github.io/blog/Proper-CUDA-Error-Checking/
 ### `forward_softmax`
 - **Grid / Block**: Same as `forward_relu`
 - **Optimizations**:
-  - Shared memory tiling for `GEMM`(`XW + b`)
+  - Shared memory tiling for `GEMM`(`X @ W + b`)
   - Kernel fusion of forward pass and softmax
 
-### `backward`
+### `z_grad`
 - **Grid / Block**: Same as `forward_relu`
 - **Optimizations**:
-  - Shared memory tiling for `d_l @ W`
+  - Shared memory tiling for `dz @ W^T`
   - Loop unrolling (`#pragma unroll`)
 
 ### `cross_entropy`
+<img src="./images/z_grad.png" alt="z_grad" width="40%"></img>
 - **Grid**: 1D grid over batch size
 - **Block**: 1D block of size `block_size`
 - **Optimizations**:
-  - Warp-level reduction (`__shfl_down_sync`)
+  - Initially used warp-level reduction (`__shfl_down_sync`)
+  - The reduction logic itself was correct, but (in my opinion) using 16 threads to reduce only 10 elements introduced minor FP precision errors, which resulted in slightly incorrect loss values
+  - For reproducibility consistent with PyTorch, the loss computation was rewritten as a sequential loop unrolled using `#define WIDTH 10`
 
 ### `cross_entropy_backwards`
 - **Grid**: 1D grid over `ceil(batch_size * output_dim / block_size)`
@@ -121,9 +124,11 @@ https://leimao.github.io/blog/Proper-CUDA-Error-Checking/
 - Eliminate conditional branches (e.g., `if (row < height && col < width)`) to reduce warp divergence, assuming dimension alignment
 - Split `forward_softmax` into separate `forward` and `softmax` kernels to eliminate sync overhead
 - Replace `.csv` data loading with a binary preprocessed dataset to reduce CPU I/O Bound (~2s)
-- Use TensorCore  `wmma::mma_sync` with FP32 / FP16 mixed precision
+- Use FP16 TensorCore `wmma::mma_sync`
 - Optimize GEMM with memory-coalesced transpose and shared memory alignment (non-TensorCore)
 - Use loop-unrolled vectorized memory loads (`reinterpret_cast<float4*>`)
+- Support setting `batch_size`, `lr`, and `layer[i].dim` via CLI args to enable experiments with various configs
+- Verify that data loading order matches between PyTorch and CUDA by comparing the train/valid arrays
 
 ## System Requirements
 
