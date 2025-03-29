@@ -5,6 +5,18 @@
 #include <iostream>
 #include <stdexcept>
 
+struct Layer {
+    // host
+    int prev_dim;
+    int cur_dim;
+    // device
+    float *w;
+    float *b;
+    float *d_l;
+    float *x;
+    float *a;
+} layer[3];
+
 inline int argmax(const float *__restrict__ arr, const int len) {
     int max_idx = 0;
     if (len <= 0) return -1;
@@ -17,18 +29,6 @@ inline int argmax(const float *__restrict__ arr, const int len) {
     }
     return max_idx;
 }
-
-struct Layer {
-    // host
-    int prev_dim;
-    int cur_dim;
-    // device
-    float *w;
-    float *b;
-    float *d_l;
-    float *x;
-    float *a;
-} layer[3];
 
 void read_dataset(const char *path, 
     const int start, 

@@ -2,41 +2,6 @@
 #define BLOCK_SIZE 16
 #include <curand.h>
 #include <curand_kernel.h>
-/*
-__global__ void forward_softmax(
-    const int batch_size,
-    const int input_dim,
-    const int output_dim,
-    float *input,
-    float *weight,
-    float *bias,
-    float *output,
-    float *activation
-) {
-    int col = blockIdx.x * blockDim.x + threadIdx.x;
-    int row = blockIdx.y * blockDim.y + threadIdx.y;
-    if (row < batch_size && col < output_dim) {
-        // Y[row, col] = b[col]
-        output[row * output_dim + col] = bias[col];
-        for (int i = 0; i < input_dim; i++) {
-            // Y[row, col] += X[row, :] * W[:, col]
-            output[row * output_dim + col] += input[row * input_dim + i] * weight[i * output_dim + col];
-        }
-        float maxval = output[row * output_dim];
-        for (int i = 1; i < output_dim; i++) {
-            maxval = fmaxf(maxval, output[row * output_dim + i]);
-        }
-        float divisor = 0.0f;
-        for (int i = 0; i < output_dim; i++) {
-            divisor += exp(output[row * output_dim + i] - maxval);
-        }
-        activation[row * output_dim + col] = exp(output[row * output_dim + col] - maxval) / divisor;
-        // printf("Thread(%d,%d): maxval = %f\n", row, col, maxval);
-        // printf("Thread(%d,%d): divisor = %f\n", row, col, divisor);
-    }
-
-}
-*/
 
 // TODO: softmax with warp shuffle
 __global__ void forward_softmax(
@@ -82,9 +47,7 @@ __global__ void forward_softmax(
     }
     activation[row_idx + col] = exp(output[row_idx + col] - maxval) / divisor;
 }
-// */
 
-// #if 0
 __global__ void forward(
     const int batch_size,
     const int input_dim,
@@ -131,50 +94,7 @@ __global__ void forward(
     output[row * output_dim + col] = out;
 }
 
-#if 0 // It cause race condition
-__global__ void softmax(int w, int h, float *input, float *output) {
-    int col = blockIdx.x * blockDim.x + threadIdx.x;
-    int row = blockIdx.y * blockDim.y + threadIdx.y;
-    if (row < h && col < w) {
-        float maxval = input[row * w]; // Initialize to maxval = a[row, 0]
-        for (int i = 1; i < w; i++) {
-            maxval = fmaxf(maxval, input[row * w + i]);
-        }
-        float divisor = 0.0f;
-        for (int i = 0; i < w; i++) {
-            divisor += exp(input[row * w + i] - maxval);
-        }
-        output[row * w + col] = exp(input[row * w + col] - maxval) / divisor;
-    }
-}
-#endif
-
-// #endif
-
-#if 0
-__global__ void forward_relu(
-    int batch_size,
-    int input_dim,
-    int output_dim,
-    float *input,
-    float *weight,
-    float *bias,
-    float *output
-) {
-    int col = blockIdx.x * blockDim.x + threadIdx.x;
-    int row = blockIdx.y * blockDim.y + threadIdx.y;
-    if (row < batch_size && col < output_dim) {
-        float out = bias[col];
-        for (int i = 0; i < input_dim; i++) {
-            out += weight[i * output_dim + col] * input[row * input_dim + i];
-        }
-        output[row * output_dim + col] = out > 0.0f ? out : 0.0f;
-    }
-}
-#endif
-
 // consider coalesed memory access: https://leimao.github.io/article/CUDA-Matrix-Multiplication-Optimizaton/
-// #if 0
 __global__ void forward_relu(
     const int batch_size,
     const int input_dim,
@@ -214,62 +134,37 @@ __global__ void forward_relu(
 }
 // #endif
 
-/*
-__global__ void backward(
-    const int batch_size,
-    const int input_dim,
-    const int output_dim,
-    const float *__restrict__ weight,
-    const float *__restrict__ bias,
-    float *__restrict__ d_l,
-    float *__restrict__ out_d_l,
-    const float *__restrict__ activation
-) {
-    int col = blockIdx.x * blockDim.x + threadIdx.x;
-    int row = blockIdx.y * blockDim.y + threadIdx.y;
-    if (row < batch_size && col < output_dim) {
-        float dl = 0.0f;
-        for (int i = 0; i < input_dim; i++) {
-            float w = weight[i * output_dim + col];
-            dl += w * d_l[row * input_dim + i];
-        }
-        float act = activation[row * output_dim + col];
-        out_d_l[row * output_dim + col] = act > 0.0f ? dl : 0.0f;
-    }
-}
-*/
-
 __global__ void z_grad(
     const int batch_size,
     const int input_dim,  // 10
     const int output_dim, // 160
-    const float *__restrict__ weight,       // (input_dim, output_dim)
-    float *__restrict__ d_l,                // (batch_size, input_dim)
-    float *__restrict__ out_d_l,            // (batch_size, output_dim)
-    const float *__restrict__ activation    // (batch_size, output_dim)
+    const float *__restrict__ weight,      // (input_dim, output_dim)
+    float *__restrict__ dz,                // (batch_size, input_dim)
+    float *__restrict__ out_dz,            // (batch_size, output_dim)
+    const float *__restrict__ activation   // (batch_size, output_dim)
 ) {
     int col = blockIdx.x * blockDim.x + threadIdx.x;
     int row = blockIdx.y * blockDim.y + threadIdx.y;
     int tx = threadIdx.x;
     int ty = threadIdx.y;
     // if (row >= batch_size || col >= output_dim) return;
-    __shared__ float d_l_tile[TILE_SIZE][TILE_SIZE];
+    __shared__ float dz_tile[TILE_SIZE][TILE_SIZE];
     __shared__ float w_tile[TILE_SIZE][TILE_SIZE + 8];
     float dl = 0.0f;
     // dz^(k) = ∂L/∂Z^(k) = (dz^(k+1) @ (W^(k+1))^t) ⊙ 1(a^(k) > 0)
     for (int tile_offset = 0; tile_offset < input_dim; tile_offset += TILE_SIZE) {
-        d_l_tile[ty][tx] = (tile_offset + tx < input_dim) ? d_l[row * input_dim + tile_offset + tx] : 0.0f;
+        dz_tile[ty][tx] = (tile_offset + tx < input_dim) ? dz[row * input_dim + tile_offset + tx] : 0.0f;
         w_tile[ty][tx] = (tile_offset + ty < input_dim) ? weight[col * input_dim + (tile_offset + ty)] : 0.0f;
         __syncthreads();
 
         #pragma unroll
         for (int i = 0; i < TILE_SIZE; i++) {
-            dl += d_l_tile[ty][i] * w_tile[i][tx];
+            dl += dz_tile[ty][i] * w_tile[i][tx];
         }
         __syncthreads();
     }
-    float act = activation[row * output_dim + col];
-    out_d_l[row * output_dim + col] = (act > 0.0f) ? dl : 0.0f;  // 1(a^(k) > 0)
+    float a = activation[row * output_dim + col];
+    out_dz[row * output_dim + col] = (a > 0.0f) ? dl : 0.0f;  // 1(a^(k) > 0)
 }
 
 __global__ void update_layer(
@@ -280,21 +175,21 @@ __global__ void update_layer(
     float *__restrict__ weight,
     float *__restrict__ bias,
     const float *__restrict__ activation,
-    const float *__restrict__ d_l
+    const float *__restrict__ dz
 ) {
     int col = blockIdx.x * blockDim.x + threadIdx.x;
     int row = blockIdx.y * blockDim.y + threadIdx.y;
     if (row < height && col < width) {
         float dw = 0.0f;
         float db = 0.0f;
-        // W^(k) -= lr * ∂L/∂W^(k) = lr * (A^(k-1))^t * d_l^(k)
-        // b^(k) -= lr * ∂L/∂b^(k) = lr * sum(d_l^(k))
-        // where d_l^(k) = ∂L/∂Z^(k)
+        // W^(k) -= lr * ∂L/∂W^(k) = lr * (A^(k-1))^t * dz^(k)
+        // b^(k) -= lr * ∂L/∂b^(k) = lr * sum(dz^(k))
+        // where dz^(k) = ∂L/∂Z^(k)
         for (int i = 0; i < batch_size; i++) {
-            float act = activation[i * height + row];
-            float dl = d_l[i * width + col];
-            dw += act * dl;
-            db += dl;
+            float a_frag = activation[i * height + row];
+            float dl_frag = dz[i * width + col];
+            dw += a_frag * dl_frag;
+            db += dl_frag;
         }
         weight[row * width + col] -= lr * dw / batch_size;
         atomicAdd(&bias[col], -lr * db / (batch_size * height));
@@ -361,8 +256,9 @@ __global__ void cross_entropy(
 }
 #endif
 
-/* // for (2D, 2D) config
-__global__ void cross_entropy_backwards(
+/* 
+// for (2D, 2D) config
+__global__ void cross_entropy_softmax_grad(
     const int width, 
     const int height, 
     const float *__restrict__ y_hat, 
@@ -407,4 +303,3 @@ __global__ void init_bias(const int output_dim, float *__restrict__ bias) {
     int col = blockIdx.x * blockDim.x + threadIdx.x;
     bias[col] = 0.0f;
 }
-

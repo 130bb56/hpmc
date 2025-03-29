@@ -5,7 +5,6 @@ NVCC_FLAGS = \
 	-O3 \
 	-DNDEBUG \
 	-Xptxas=-O3 \
-	--use_fast_math \
 	-arch=sm_89 \
 	-maxrregcount=64
 
