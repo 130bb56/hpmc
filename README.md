@@ -98,7 +98,7 @@ https://leimao.github.io/blog/Proper-CUDA-Error-Checking/
   - Loop unrolling (`#pragma unroll`)
 
 ### `cross_entropy`
-<img src="./images/z_grad.png" alt="z_grad" width="70%"></img>
+<img src="./images/z_grad.gif" alt="z_grad"></img>
 - **Grid**: 1D grid over batch size
 - **Block**: 1D block of size `block_size`
 - **Optimizations**:
