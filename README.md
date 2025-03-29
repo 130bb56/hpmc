@@ -119,7 +119,9 @@ https://leimao.github.io/blog/Proper-CUDA-Error-Checking/
 ### `update_layer`
 <p>
   <img src="./images/update_layer_w.gif" alt="update_layer_w">
+  <br>
   <img src="./images/update_layer_b.gif" alt="update_layer_b">
+  <br>
   <img src="./images/update_layer_cond.gif" alt="update_layer_cond">
 </p>
 
