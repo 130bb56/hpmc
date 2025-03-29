@@ -260,7 +260,7 @@ __global__ void forward_relu(
 // #endif
 
 
-__global__ void backward(
+__global__ void z_grad(
     const int batch_size,
     const int input_dim,
     const int output_dim,
@@ -379,7 +379,7 @@ __global__ void cross_entropy_backwards(
 }
 */
 
-__global__ void cross_entropy_backwards(
+__global__ void cross_entropy_softmax_grad(
     const int width, 
     const int height, 
     const float *__restrict__ y_hat, 
@@ -606,14 +606,14 @@ int main(int argc, char **argv) {
             dimGrid = dim3(ceil(layer[2].cur_dim * batch_size / (float)block_size), 1, 1);
             dimBlock = dim3(block_size, 1, 1);
             timer_cross_entropy_backwards.start_timing();
-            cross_entropy_backwards<<<dimGrid, dimBlock>>>(layer[2].cur_dim, batch_size, layer[2].a, label, layer[2].d_l);
+            cross_entropy_softmax_grad<<<dimGrid, dimBlock>>>(layer[2].cur_dim, batch_size, layer[2].a, label, layer[2].d_l);
             CHECK_KERNEL_ERROR();
             timer_cross_entropy_backwards.stop_timing();
 
             dimGrid = dim3(ceil(layer[1].cur_dim / (float)block_size), ceil(batch_size / (float)block_size), 1);
             dimBlock = dim3(block_size, block_size, 1);
             timer_backward1.start_timing();
-            backward<<<dimGrid, dimBlock>>>(
+            z_grad<<<dimGrid, dimBlock>>>(
                 batch_size, 
                 layer[2].cur_dim, 
                 layer[1].cur_dim, 
@@ -627,7 +627,7 @@ int main(int argc, char **argv) {
 
             dimGrid = dim3(ceil(layer[0].cur_dim / (float)block_size), ceil(batch_size / (float)block_size), 1);
             timer_backward2.start_timing();
-            backward<<<dimGrid, dimBlock>>>(
+            z_grad<<<dimGrid, dimBlock>>>(
                 batch_size, 
                 layer[1].cur_dim, 
                 layer[0].cur_dim, 
