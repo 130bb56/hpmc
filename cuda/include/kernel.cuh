@@ -287,9 +287,9 @@ __global__ void update_layer(
     if (row < height && col < width) {
         float dw = 0.0f;
         float db = 0.0f;
-        // W^(l) -= lr * ∂L/∂W^(l) = lr * (A^(l-1))^t * d_l^(l)
-        // b^(l) -= lr * ∂L/∂b^(l) = lr * sum(d_l^(l))
-        // where d_l^(l) = ∂L/∂Z^(l)
+        // W^(k) -= lr * ∂L/∂W^(k) = lr * (A^(k-1))^t * d_l^(k)
+        // b^(k) -= lr * ∂L/∂b^(k) = lr * sum(d_l^(k))
+        // where d_l^(k) = ∂L/∂Z^(k)
         for (int i = 0; i < batch_size; i++) {
             float act = activation[i * height + row];
             float dl = d_l[i * width + col];

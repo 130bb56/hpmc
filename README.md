@@ -92,13 +92,16 @@ https://leimao.github.io/blog/Proper-CUDA-Error-Checking/
   - Kernel fusion of forward pass and softmax
 
 ### `z_grad`
+<p>
+  <img src="./images/z_grad.gif" alt="z_grad">
+</p>
+
 - **Grid / Block**: Same as `forward_relu`
 - **Optimizations**:
-  - Shared memory tiling for `dz @ W^T`
+  - Shared memory tiling for `dz^(k+1) @ (W^(k+1))^T`, where `dz^(k) = ∂L/∂Z^(k)`
   - Loop unrolling (`#pragma unroll`)
 
 ### `cross_entropy`
-<img src="./images/z_grad.gif" alt="z_grad"></img>
 - **Grid**: 1D grid over batch size
 - **Block**: 1D block of size `block_size`
 - **Optimizations**:
@@ -106,14 +109,20 @@ https://leimao.github.io/blog/Proper-CUDA-Error-Checking/
   - The reduction logic itself was correct, but (in my opinion) using 16 threads to reduce only 10 elements introduced minor FP precision errors, which resulted in slightly incorrect loss values
   - For reproducibility consistent with PyTorch, the loss computation was rewritten as a sequential loop unrolled using `#define WIDTH 10`
 
-### `cross_entropy_backwards`
+### `cross_entropy_softmax_grad`
 - **Grid**: 1D grid over `ceil(batch_size * output_dim / block_size)`
 - **Block**: 1D block of size `block_size`
 - **Optimizations**:
   - Eliminate conditional branch `col < height * width`
-  - Computes `d_l = y_hat - y` directly to reduce computation overhead
+  - Computes `dz = ∂L/∂Z = y_hat - y` directly to reduce computation overhead
 
 ### `update_layer`
+<p>
+  <img src="./images/update_layer_w.gif" alt="update_layer_w">
+  <img src="./images/update_layer_b.gif" alt="update_layer_b">
+  <img src="./images/update_layer_cond.gif" alt="update_layer_cond">
+</p>
+
 - **Grid**: 2D grid of shape `(ceil(width / block_size), ceil(height / block_size))`
 - **Block**: 2D block of shape `(block_size, block_size)`
 - **Optimizations**:
