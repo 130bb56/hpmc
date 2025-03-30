@@ -142,7 +142,7 @@ https://leimao.github.io/blog/Proper-CUDA-Error-Checking/
   <img src="./images/update_fusion.png" width="600px">
 </p>
 
-**Note**: For floating-point numerical stability, we omit the `1 / B`​ factor during gradient descent and apply it only once during the parameter update step.
+**Note**: For floating-point numerical stability, we omit the `1 / B`​ factor during gradient computation and apply it only once during the parameter update step.
 
 - **Grid**: 2D grid of shape `(ceil(width / block_size), ceil(height / block_size))`
 - **Block**: 2D block of shape `(block_size, block_size)`
