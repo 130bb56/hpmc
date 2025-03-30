@@ -104,8 +104,8 @@ https://leimao.github.io/blog/Proper-CUDA-Error-Checking/
 
 ### `z_grad`
 <p>
-  <img src="./images/zgrad.gif" alt="z_grad">
-  <!-- <img src="./images/zgrad_unified.png" width="700px"> -->
+  <!-- <img src="./images/zgrad.gif" alt="z_grad"> -->
+  <img src="./images/zgrad_fusion.png" width="600px">
 </p>
 
 - **Grid / Block**: Same as `forward_relu`
@@ -130,7 +130,7 @@ https://leimao.github.io/blog/Proper-CUDA-Error-Checking/
 
 ### `update_layer`
 <p>
-  <img src="./images/dz.gif" style="margin-bottom: 2px;">
+  <!-- <img src="./images/dz.gif" style="margin-bottom: 2px;">
   <br>
   <img src="./images/dw.gif" style="margin-bottom: 2px;">
   <br>
@@ -138,8 +138,8 @@ https://leimao.github.io/blog/Proper-CUDA-Error-Checking/
   <br>
   <img src="./images/update_w.gif" style="margin-bottom: 2px;">
   <br><br>
-  <img src="./images/update_b.gif">
-  <!-- <img src="./images/update_layer_unified.png" width="800px"> -->
+  <img src="./images/update_b.gif"> -->
+  <img src="./images/update_fusion.png" width="600px">
 </p>
 
 - **Grid**: 2D grid of shape `(ceil(width / block_size), ceil(height / block_size))`
