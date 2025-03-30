@@ -130,16 +130,15 @@ https://leimao.github.io/blog/Proper-CUDA-Error-Checking/
 
 ### `update_layer`
 <p>
-  <img src="./images/dz.gif">
+  <img src="./images/dz.gif" style="margin-bottom: 2px;">
   <br>
-  <img src="./images/dw.gif">
+  <img src="./images/dw.gif" style="margin-bottom: 2px;">
   <br>
-  <img src="./images/db.gif">
+  <img src="./images/db.gif" style="margin-bottom: 2px;">
   <br>
-  <img src="./images/update_w.gif">
+  <img src="./images/update_w.gif" style="margin-bottom: 5px;">
   <br>
   <img src="./images/update_b.gif">
-  
   <!-- <img src="./images/update_layer_unified.png" width="800px"> -->
 </p>
 
