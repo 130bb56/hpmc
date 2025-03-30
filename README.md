@@ -16,8 +16,19 @@ For the performance measurements, the CUDA implementation was executed through V
 
 | Configuration      | Accuracy | Time per Epoch | GPU Utilization | GPU Memory Usage |
 |:-----------------:|:--------:|:--------------:|:-------:|:-------:|
-| PyTorch Baseline  | 97.776% | 1961ms          |34%      |145MiB
-| **HPMC (Ours)**   | **97.837%**     |**218ms**|**64%**  |**126MiB**
+| PyTorch Baseline  | 97.78%     | 1961ms  |34%      |145MiB
+| **HPMC (Ours)**   | **97.84%** |**218ms**|**64%**  |**126MiB**
+
+## Configuration Strategy
+
+During kernel grid/block configuration, both compile-time and runtime ceil computations are used selectively for performance and code clarity.
+
+- **Compile-time constants**: a custom `constexpr int _ceil(int a, int b)` is defined to compute `ceil(a / b)` without runtime overhead.
+- **Runtime variables**: `std::ceilf()` is used instead of `std::ceil()` to avoid unnecessary float-to-double promotions. Since `std::ceilf()` is optimized for `FP32` arguments, it may result in better performance and type consistency on host code.
+
+But this approach sacrifices flexibility — since `constexpr` requires compile-time constants, dimensions like `layer1_dim` can't be set via CLI.
+
+In this case, using `const int` with `std::ceilf()` instead enables runtime configuration.
 
 ## Build & Run
 

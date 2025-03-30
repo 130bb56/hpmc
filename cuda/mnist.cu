@@ -7,8 +7,6 @@
 #include "./include/kernel.cuh"
 #include "./include/utils.cuh"
 
-#define TILE_SIZE 16
-
 #define CHECK_ERROR(ans) { cudaAssert((ans), __FILE__, __LINE__); }
 #define CHECK_KERNEL_ERROR() { cudaKernelAssert(__FILE__, __LINE__); }
 #define ASSERT(cond, msg, ...) \
@@ -48,12 +46,12 @@ void init_layer_params(
     const int height, 
     const int block_size
 ) {
-    dim3 dimGrid = dim3(ceil(width / (float)block_size), ceil(height / (float)block_size), 1);
+    dim3 dimGrid = dim3(ceilf(width / (float)block_size), ceilf(height / (float)block_size), 1);
     dim3 dimBlock = dim3(block_size, block_size, 1);
     init_weight<<<dimGrid, dimBlock>>>(width, height, weight);
     CHECK_KERNEL_ERROR();
 
-    dimGrid = dim3(ceil(height / (float)block_size), 1, 1);
+    dimGrid = dim3(ceilf(height / (float)block_size), 1, 1);
     dimBlock = dim3(block_size, 1, 1);
     init_bias<<<dimGrid, dimBlock>>>(width, bias);
     CHECK_KERNEL_ERROR();
@@ -75,9 +73,14 @@ int main(int argc, char **argv) {
     constexpr int epochs = 30;
     constexpr int batch_size = 64;
     constexpr float lr = 0.03f;
-    layer[0].cur_dim = 320;
-    layer[1].cur_dim = 160;
-    layer[2].cur_dim = 10;
+
+    constexpr int layer1_dim = 320;
+    constexpr int layer2_dim = 160;
+    constexpr int layer3_dim = 10;
+
+    // layer1_dim = 320;
+    // layer2_dim = 160;
+    // layer3_dim = 10;
 
     dim3 dimGrid;
     dim3 dimBlock;
@@ -94,7 +97,7 @@ int main(int argc, char **argv) {
     // std::ifstream train_fin(train_path);
     // std::ifstream val_fin(val_path);
 
-    float *out_h = (float *)malloc(batch_size * layer[2].cur_dim * sizeof(float));
+    float *out_h = (float *)malloc(batch_size * layer3_dim * sizeof(float));
     float *loss_h = (float *)malloc(batch_size * sizeof(float));
     float *loss_d;
 
@@ -105,15 +108,15 @@ int main(int argc, char **argv) {
     read_dataset(train_path, 0, train_length, dataset_train_x, dataset_train_y);
     read_dataset(val_path, 0, val_length, dataset_val_x, dataset_val_y);
 
-    for (int i = 0; i < 3; i++) {
-        layer[i].prev_dim = i == 0 ? input_size : (i == 1 ? layer[0].cur_dim : layer[1].cur_dim);
-        layer[i].cur_dim = i == 0 ? layer[0].cur_dim : (i == 1 ? layer[1].cur_dim : layer[2].cur_dim);
-        CHECK_ERROR(cudaMalloc((void **)&layer[i].w, layer[i].prev_dim * layer[i].cur_dim * sizeof(float)));
-        CHECK_ERROR(cudaMalloc((void **)&layer[i].b, layer[i].cur_dim * sizeof(float)));
-        CHECK_ERROR(cudaMalloc((void **)&layer[i].dz, batch_size * layer[i].cur_dim * sizeof(float)));
-        init_layer_params(layer[i].w, layer[i].b, layer[i].cur_dim, layer[i].prev_dim, block_size);
-        CHECK_ERROR(cudaMalloc((void **)&layer[i].x, batch_size * layer[i].cur_dim * sizeof(float)));
-        CHECK_ERROR(cudaMalloc((void **)&layer[i].a, batch_size * layer[i].cur_dim * sizeof(float)));
+    for (int i = 1; i <= 3; i++) {
+        int prev_dim = i == 1 ? input_size : (i == 2 ? layer1_dim : layer2_dim);
+        int cur_dim = i == 1 ? layer1_dim : (i == 2 ? layer2_dim : layer3_dim);
+        CHECK_ERROR(cudaMalloc((void **)&layer[i].w, prev_dim * cur_dim * sizeof(float)));
+        CHECK_ERROR(cudaMalloc((void **)&layer[i].b, cur_dim * sizeof(float)));
+        CHECK_ERROR(cudaMalloc((void **)&layer[i].dz, batch_size * cur_dim * sizeof(float)));
+        init_layer_params(layer[i].w, layer[i].b, cur_dim, prev_dim, block_size);
+        CHECK_ERROR(cudaMalloc((void **)&layer[i].x, batch_size * cur_dim * sizeof(float)));
+        CHECK_ERROR(cudaMalloc((void **)&layer[i].a, batch_size * cur_dim * sizeof(float)));
     }
     CHECK_ERROR(cudaMalloc((void **)&loss_d, batch_size * sizeof(float)));
 
@@ -150,92 +153,104 @@ int main(int argc, char **argv) {
             train_cnt += batch_size;
             CHECK_ERROR(cudaMemcpy(input, &dataset_train_x[batch_idx * batch_size * input_size], batch_size * input_size * sizeof(float), cudaMemcpyHostToDevice));
             CHECK_ERROR(cudaMemcpy(label, &dataset_train_y[batch_idx * batch_size * num_class], batch_size * num_class * sizeof(float), cudaMemcpyHostToDevice));
-            dimGrid = dim3(ceil(layer[0].cur_dim / (float)block_size), ceil(batch_size / (float)block_size), 1);
+            dimGrid = dim3(_ceil(layer1_dim, block_size), _ceil(batch_size, block_size), 1);
             dimBlock = dim3(block_size, block_size, 1);
             forward_relu<<<dimGrid, dimBlock>>>(
                 batch_size, 
-                layer[0].prev_dim, 
-                layer[0].cur_dim, 
+                input_size, 
+                layer1_dim, 
                 input, 
-                layer[0].w, 
-                layer[0].b, 
-                layer[0].a
-            ); CHECK_KERNEL_ERROR();
-
-            dimGrid = dim3(ceil(layer[1].cur_dim / (float)block_size), ceil(batch_size / (float)block_size), 1);
-            forward_relu<<<dimGrid, dimBlock>>>(
-                batch_size, 
-                layer[1].prev_dim, 
-                layer[1].cur_dim, 
-                layer[0].a, 
                 layer[1].w, 
                 layer[1].b, 
                 layer[1].a
             ); CHECK_KERNEL_ERROR();
 
-            dimGrid = dim3(ceil(layer[2].cur_dim / (float)block_size), ceil(batch_size / (float)block_size), 1);
+            dimGrid = dim3(_ceil(layer2_dim, block_size), _ceil(batch_size, block_size), 1);
+            forward_relu<<<dimGrid, dimBlock>>>(
+                batch_size, 
+                layer1_dim, 
+                layer2_dim, 
+                layer[1].a, 
+                layer[2].w, 
+                layer[2].b, 
+                layer[2].a
+            ); CHECK_KERNEL_ERROR();
+
+            dimGrid = dim3(_ceil(layer3_dim, block_size), _ceil(batch_size, block_size), 1);
             /*
             forward<<<dimGrid, dimBlock>>>(
                 batch_size, 
-                layer[2].prev_dim, 
-                layer[2].cur_dim, 
+                layer2_dim, 
+                layer3_dim, 
                 layer[1].a, 
                 layer[2].w, 
                 layer[2].b, 
                 layer[2].x
             ); CHECK_KERNEL_ERROR();
-            softmax<<<dimGrid, dimBlock>>>(layer[2].cur_dim, batch_size, layer[2].x, layer[2].a);
+            softmax<<<dimGrid, dimBlock>>>(layer3_dim, batch_size, layer[2].x, layer[2].a);
             CHECK_KERNEL_ERROR();
             */
             forward_softmax<<<dimGrid, dimBlock>>>(
                 batch_size, 
-                layer[2].prev_dim, 
-                layer[2].cur_dim, 
-                layer[1].a, 
-                layer[2].w, 
-                layer[2].b, 
-                layer[2].x, 
-                layer[2].a
+                layer2_dim, 
+                layer3_dim, 
+                layer[2].a, 
+                layer[3].w, 
+                layer[3].b, 
+                layer[3].x, 
+                layer[3].a
             ); CHECK_KERNEL_ERROR();
-            dimGrid = dim3(ceil(batch_size / (float)block_size), 1, 1);
+            dimGrid = dim3(_ceil(batch_size, block_size), 1, 1);
             dimBlock = dim3(block_size, 1, 1);
             cross_entropy<<<dimGrid, dimBlock>>>(
-                layer[2].cur_dim, batch_size, layer[2].a, label, loss_d
+                layer3_dim, batch_size, layer[3].a, label, loss_d
             ); CHECK_KERNEL_ERROR();
 
             // TODO: Config layout: (1D, 1D) vs (2D, 2D) -> (1D, 1D) is much faster
-            dimGrid = dim3(ceil(layer[2].cur_dim * batch_size / (float)block_size), 1, 1);
-            cross_entropy_softmax_grad<<<dimGrid, dimBlock>>>(layer[2].cur_dim, batch_size, layer[2].a, label, layer[2].dz);
+            dimGrid = dim3(_ceil(layer3_dim * batch_size, block_size), 1, 1);
+            cross_entropy_softmax_grad<<<dimGrid, dimBlock>>>(layer3_dim, batch_size, layer[3].a, label, layer[3].dz);
             CHECK_KERNEL_ERROR();
 
-            dimGrid = dim3(ceil(layer[1].cur_dim / (float)block_size), ceil(batch_size / (float)block_size), 1);
+            dimGrid = dim3(_ceil(layer2_dim, block_size), _ceil(batch_size, block_size), 1);
             dimBlock = dim3(block_size, block_size, 1);
             z_grad<<<dimGrid, dimBlock>>>(
                 batch_size, 
-                layer[2].cur_dim, 
-                layer[1].cur_dim, 
+                layer3_dim, 
+                layer2_dim, 
+                layer[3].w, 
+                layer[3].dz, 
+                layer[2].dz, 
+                layer[2].a
+            ); CHECK_KERNEL_ERROR();
+
+            dimGrid = dim3(_ceil(layer1_dim, block_size), _ceil(batch_size, block_size), 1);
+            z_grad<<<dimGrid, dimBlock>>>(
+                batch_size, 
+                layer2_dim, 
+                layer1_dim, 
                 layer[2].w, 
                 layer[2].dz, 
                 layer[1].dz, 
                 layer[1].a
             ); CHECK_KERNEL_ERROR();
 
-            dimGrid = dim3(ceil(layer[0].cur_dim / (float)block_size), ceil(batch_size / (float)block_size), 1);
-            z_grad<<<dimGrid, dimBlock>>>(
-                batch_size, 
-                layer[1].cur_dim, 
-                layer[0].cur_dim, 
-                layer[1].w, 
-                layer[1].dz, 
-                layer[0].dz, 
-                layer[0].a
+            dimGrid = dim3(_ceil(layer3_dim, block_size), _ceil(layer2_dim, block_size), 1);
+            update_layer<<<dimGrid, dimBlock>>>(
+                layer3_dim, 
+                layer2_dim, 
+                batch_size,
+                lr, 
+                layer[3].w, 
+                layer[3].b, 
+                layer[2].a, 
+                layer[3].dz
             ); CHECK_KERNEL_ERROR();
 
-            dimGrid = dim3(ceil(layer[2].cur_dim / (float)block_size), ceil(layer[1].cur_dim / (float)block_size), 1);
+            dimGrid = dim3(_ceil(layer2_dim, block_size), _ceil(layer1_dim, block_size), 1);
             update_layer<<<dimGrid, dimBlock>>>(
-                layer[2].cur_dim, 
-                layer[1].cur_dim, 
-                batch_size,
+                layer2_dim, 
+                layer1_dim, 
+                batch_size, 
                 lr, 
                 layer[2].w, 
                 layer[2].b, 
@@ -243,30 +258,18 @@ int main(int argc, char **argv) {
                 layer[2].dz
             ); CHECK_KERNEL_ERROR();
 
-            dimGrid = dim3(ceil(layer[1].cur_dim / (float)block_size), ceil(layer[0].cur_dim / (float)block_size), 1);
+            dimGrid = dim3(_ceil(layer1_dim, block_size), _ceil(input_size, block_size), 1);
             update_layer<<<dimGrid, dimBlock>>>(
-                layer[1].cur_dim, 
-                layer[0].cur_dim, 
+                layer1_dim, 
+                input_size, 
                 batch_size, 
                 lr, 
                 layer[1].w, 
                 layer[1].b, 
-                layer[0].a, 
+                input, 
                 layer[1].dz
             ); CHECK_KERNEL_ERROR();
-
-            dimGrid = dim3(ceil(layer[0].cur_dim / (float)block_size), ceil(input_size / (float)block_size), 1);
-            update_layer<<<dimGrid, dimBlock>>>(
-                layer[0].cur_dim, 
-                input_size, 
-                batch_size, 
-                lr, 
-                layer[0].w, 
-                layer[0].b, 
-                input, 
-                layer[0].dz
-            ); CHECK_KERNEL_ERROR();
-            CHECK_ERROR(cudaMemcpy(out_h, layer[2].a, batch_size * layer[2].cur_dim * sizeof(float), cudaMemcpyDeviceToHost));
+            CHECK_ERROR(cudaMemcpy(out_h, layer[3].a, batch_size * layer3_dim * sizeof(float), cudaMemcpyDeviceToHost));
             CHECK_ERROR(cudaMemcpy(loss_h, loss_d, batch_size * sizeof(float), cudaMemcpyDeviceToHost));
 
             for (int i = 0; i < batch_size; i++) {
@@ -284,61 +287,61 @@ int main(int argc, char **argv) {
             CHECK_ERROR(cudaMemcpy(input, &dataset_val_x[batch_idx * batch_size * input_size], batch_size * input_size * sizeof(float), cudaMemcpyHostToDevice));
             CHECK_ERROR(cudaMemcpy(label, &dataset_val_y[batch_idx * batch_size * num_class], batch_size * num_class * sizeof(float), cudaMemcpyHostToDevice));
 
-            dimGrid = dim3(ceil(layer[0].cur_dim / (float)block_size), ceil(batch_size / (float)block_size), 1);
+            dimGrid = dim3(_ceil(layer1_dim, block_size), _ceil(batch_size, block_size), 1);
             dimBlock = dim3(block_size, block_size, 1);
             forward_relu<<<dimGrid, dimBlock>>>(
                 batch_size, 
                 input_size, 
-                layer[0].cur_dim, 
+                layer1_dim, 
                 input, 
-                layer[0].w, 
-                layer[0].b, 
-                layer[0].a
-            ); CHECK_KERNEL_ERROR();
-
-            dimGrid = dim3(ceil(layer[1].cur_dim / (float)block_size), ceil(batch_size / (float)block_size), 1);
-            dimBlock = dim3(block_size, block_size, 1);
-            forward_relu<<<dimGrid, dimBlock>>>(
-                batch_size, 
-                layer[0].cur_dim, 
-                layer[1].cur_dim, 
-                layer[0].a, 
                 layer[1].w, 
                 layer[1].b, 
                 layer[1].a
             ); CHECK_KERNEL_ERROR();
 
-            dimGrid = dim3(ceil(layer[2].cur_dim / (float)block_size), ceil(batch_size / (float)block_size), 1);
+            dimGrid = dim3(_ceil(layer2_dim, block_size), _ceil(batch_size, block_size), 1);
+            dimBlock = dim3(block_size, block_size, 1);
+            forward_relu<<<dimGrid, dimBlock>>>(
+                batch_size, 
+                layer1_dim, 
+                layer2_dim, 
+                layer[1].a, 
+                layer[2].w, 
+                layer[2].b, 
+                layer[2].a
+            ); CHECK_KERNEL_ERROR();
+
+            dimGrid = dim3(_ceil(layer3_dim, block_size), _ceil(batch_size, block_size), 1);
             dimBlock = dim3(block_size, block_size, 1);
             /*
             forward<<<dimGrid, dimBlock>>>(
                 batch_size, 
-                layer[1].cur_dim,
-                layer[2].cur_dim,
-                layer[1].a,
-                layer[2].w,
-                layer[2].b,
-                layer[2].x
+                layer2_dim,
+                layer3_dim,
+                layer[2].a,
+                layer[3].w,
+                layer[3].b,
+                layer[3].x
             ); CHECK_KERNEL_ERROR();
-            softmax<<<dimGrid, dimBlock>>>(layer[2].cur_dim, batch_size, layer[2].x, layer[2].a);
+            softmax<<<dimGrid, dimBlock>>>(layer3_dim, batch_size, layer[3].x, layer[3].a);
             CHECK_KERNEL_ERROR();
             */
             forward_softmax<<<dimGrid, dimBlock>>>(
                 batch_size, 
-                layer[1].cur_dim,
-                layer[2].cur_dim,
-                layer[1].a,
-                layer[2].w,
-                layer[2].b,
-                layer[2].x,
-                layer[2].a 
+                layer2_dim,
+                layer3_dim,
+                layer[2].a,
+                layer[3].w,
+                layer[3].b,
+                layer[3].x,
+                layer[3].a 
             ); CHECK_KERNEL_ERROR();
-            dimGrid = dim3(ceil(batch_size / (float)block_size), 1, 1);
+            dimGrid = dim3(_ceil(batch_size, block_size), 1, 1);
             dimBlock = dim3(block_size, 1, 1);
-            cross_entropy<<<dimGrid, dimBlock>>>(layer[2].cur_dim, batch_size, layer[2].a, label, loss_d);
+            cross_entropy<<<dimGrid, dimBlock>>>(layer3_dim, batch_size, layer[3].a, label, loss_d);
 
             CHECK_ERROR(cudaDeviceSynchronize());
-            CHECK_ERROR(cudaMemcpy(out_h, layer[2].a, batch_size * layer[2].cur_dim * sizeof(float), cudaMemcpyDeviceToHost));
+            CHECK_ERROR(cudaMemcpy(out_h, layer[3].a, batch_size * layer3_dim * sizeof(float), cudaMemcpyDeviceToHost));
             CHECK_ERROR(cudaMemcpy(loss_h, loss_d, batch_size * sizeof(float), cudaMemcpyDeviceToHost));
 
             for (int i = 0; i < batch_size; i++) {
@@ -361,7 +364,7 @@ int main(int argc, char **argv) {
     printf("%.0fms per epoch\n", training_time / epochs);
     // int runtime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - start_time).count();
     // printf("Runtime: %dms\n", runtime);
-    for (int i = 0; i < 3; i++) {
+    for (int i = 1; i <= 3; i++) {
         CHECK_ERROR(cudaFree(layer[i].w));
         CHECK_ERROR(cudaFree(layer[i].b));
         CHECK_ERROR(cudaFree(layer[i].dz));

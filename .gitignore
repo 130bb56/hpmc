@@ -5,3 +5,4 @@ signature.cu
 *.ex*
 *.lib
 mnist-test.ipynb
+latex_render

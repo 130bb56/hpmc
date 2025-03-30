@@ -5,17 +5,18 @@
 #include <iostream>
 #include <stdexcept>
 
+// device strict
 struct Layer {
-    // host
-    int prev_dim;
-    int cur_dim;
-    // device
     float *w;
     float *b;
     float *dz;
     float *x;
     float *a;
-} layer[3];
+} layer[4];
+
+constexpr int _ceil(const int a, const int b) {
+    return (a + b - 1) / b;
+}
 
 inline int argmax(const float *__restrict__ arr, const int len) {
     int max_idx = 0;
