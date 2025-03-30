@@ -5,6 +5,14 @@
 #include <iostream>
 #include <stdexcept>
 
+#define ASSERT(cond, msg, ...) \
+    do { \
+        if (!(cond)) { \
+            fprintf(stderr, "[%s: %d line] " msg "\n\n", __FILE__, __LINE__, ##__VA_ARGS__); \
+            assert(cond); \
+        } \
+    } while (0)
+
 // device strict
 struct Layer {
     float *w;

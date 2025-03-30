@@ -9,13 +9,6 @@
 
 #define CHECK_ERROR(ans) { cudaAssert((ans), __FILE__, __LINE__); }
 #define CHECK_KERNEL_ERROR() { cudaKernelAssert(__FILE__, __LINE__); }
-#define ASSERT(cond, msg, ...) \
-    do { \
-        if (!(cond)) { \
-            fprintf(stderr, "[%s: %d line] " msg "\n\n", __FILE__, __LINE__, ##__VA_ARGS__); \
-            assert(cond); \
-        } \
-    } while (0)
 
 bool debug;
 
@@ -77,10 +70,6 @@ int main(int argc, char **argv) {
     constexpr int layer1_dim = 320;
     constexpr int layer2_dim = 160;
     constexpr int layer3_dim = 10;
-
-    // layer1_dim = 320;
-    // layer2_dim = 160;
-    // layer3_dim = 10;
 
     dim3 dimGrid;
     dim3 dimBlock;
