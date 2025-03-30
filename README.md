@@ -136,7 +136,7 @@ https://leimao.github.io/blog/Proper-CUDA-Error-Checking/
   <br>
   <img src="./images/db.gif" style="margin-bottom: 2px;">
   <br>
-  <img src="./images/update_w.gif" style="margin-bottom: 5px;">
+  <img src="./images/update_w.gif" style="margin-bottom: 10px;">
   <br>
   <img src="./images/update_b.gif">
   <!-- <img src="./images/update_layer_unified.png" width="800px"> -->
