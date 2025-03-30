@@ -128,17 +128,17 @@ https://leimao.github.io/blog/Proper-CUDA-Error-Checking/
   - Eliminate conditional branch `col < height * width`
   - Computes `dz = ∂L/∂Z = y_hat - y` directly to reduce computation overhead
 
-### `update_layer
+### `update_layer`
 <p>
-  <img src="./images/dz.gif" height="70px">
+  <img src="./images/dz.gif">
   <br>
-  <img src="./images/dw.gif" height="70px">
+  <img src="./images/dw.gif">
   <br>
-  <img src="./images/db.gif" height="90px">
+  <img src="./images/db.gif">
   <br>
-  <img src="./images/update_w.gif" height="70px">
+  <img src="./images/update_w.gif">
   <br>
-  <img src="./images/update_b.gif" height="90px">
+  <img src="./images/update_b.gif">
   
   <!-- <img src="./images/update_layer_unified.png" width="800px"> -->
 </p>
