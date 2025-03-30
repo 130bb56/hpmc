@@ -1,0 +1,7 @@
+*.csv
+a
+signature.cu
+.ipynb_checkpoints
+*.ex*
+*.lib
+mnist-test.ipynb

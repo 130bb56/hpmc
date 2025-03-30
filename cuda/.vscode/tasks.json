@@ -1,0 +1,34 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build CUDA",
+            "type": "shell",
+            "command": "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.6\\bin\\nvcc.exe",
+            "args": [
+                "-O3",
+                "-DNDEBUG",
+                "-Xptxas=-O3",
+                // "--use_fast_math",
+                "-arch=sm_89",
+                "-maxrregcount=64",
+                "-o",
+                "${workspaceFolder}\\${fileBasenameNoExtension}.exe",
+                "${workspaceFolder}\\${fileBasename}"
+            ],
+            "options": {
+                "shell": {
+                    "executable": "cmd.exe",
+                    "args": ["/C"]
+                }
+            },
+            
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [],
+            "detail": "Build CUDA binary"
+        }
+    ]
+}
