@@ -2,7 +2,7 @@
 
 ## Overview
 
-HPMC is a fully custom C++/CUDA implementation of an MLP for MNIST classification, achieving over **8× training speedup** compared to the PyTorch baseline on an RTX 4060 Laptop GPU. This is a fully custom CUDA training pipeline built from scratch, without using other high-level libraries, such as `cuBLAS` or `cuDNN`.
+HPMC is a C++/CUDA implementation of an MLP for MNIST classification, achieving over **8× training speedup** compared to the PyTorch baseline on an RTX 4060 Laptop GPU. The training pipeline was built from scratch without relying on high-level libraries such as `cuBLAS` or `CUTLASS`.
 The model is a 2-hidden-layer MLP (784 &rightarrow; 320 &rightarrow; 160 &rightarrow; 10) for MNIST digit classification.
 For the performance measurements, the CUDA implementation was executed through Visual Studio Code (see `.vscode` for configuration details), while the PyTorch baseline was run in a Jupyter Notebook environment.
 
