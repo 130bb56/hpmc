@@ -66,7 +66,7 @@ int main(int argc, char **argv) {
     constexpr int epochs = 30;
     constexpr int batch_size = 64;
     constexpr float lr = 0.03f;
-
+    std::cout << "test";
     constexpr int layer1_dim = 320;
     constexpr int layer2_dim = 160;
     constexpr int layer3_dim = 10;
