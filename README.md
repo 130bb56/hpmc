@@ -14,10 +14,10 @@ For the performance measurements, the CUDA implementation was executed through V
 - `Epochs = 30`, `batch_size = 64`, `lr = 0.03`
 - GPU Metrics: Collected log using `nvidia-smi --query-gpu=memory.used,memory.total,utilization.gpu --format=csv -l 1 > metric.log`
 
-| Configuration      | Accuracy | Time per Epoch | GPU Utilization | GPU Memory Usage |
+| Configuration | Accuracy | Time per Epoch | GPU Utilization | GPU Memory Usage |
 |:-----------------:|:--------:|:--------------:|:-------:|:-------:|
-| PyTorch Baseline  | 97.78%     | 1961ms  |34%      |145MiB
-| **HPMC (Ours)**   | **97.84%** |**218ms**|**64%**  |**126MiB**
+| PyTorch Baseline  | 97.78%     | 1961ms  |34%      |145MiB    |
+| **HPMC**          | **97.84%** |**218ms**|**64%**  |**126MiB**|
 
 ## Configuration Strategy
 
@@ -142,7 +142,7 @@ https://leimao.github.io/blog/Proper-CUDA-Error-Checking/
   <img src="./images/update_fusion.png" width="600px">
 </p>
 
-**Note**: For floating-point numerical stability, we omit the `1 / B`​ factor during gradient computation and apply it only once during the parameter update step.
+**Note**: For floating-point numerical stability, the `1 / B`​ factor is omitted during gradient computation and applied it only once during the parameter update step.
 
 - **Grid**: 2D grid of shape `(ceil(width / block_size), ceil(height / block_size))`
 - **Block**: 2D block of shape `(block_size, block_size)`

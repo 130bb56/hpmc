@@ -1,9 +1,9 @@
+#include <curand.h>
+#include <curand_kernel.h>
 #define TILE_SIZE   16
 #define BLOCK_SIZE  16
 #define PADDING     8
 #define CLASS_NUM   10
-#include <curand.h>
-#include <curand_kernel.h>
 /*
 __global__ void forward_softmax(
     const int batch_size,
@@ -291,8 +291,8 @@ __global__ void update_layer(
     if (row < height && col < width) {
         float dw = 0.0f;
         float db = 0.0f;
-        // W^(k) -= lr * ∂L/∂W^(k) = lr * (A^(k-1))^t * dz^(k)
-        // b^(k) -= lr * ∂L/∂b^(k) = lr * sum(dz^(k))
+        // W^(k) -= lr * ∂L/∂W^(k) = lr / batch_size * (A^(k-1))^t * dz^(k)
+        // b^(k) -= lr * ∂L/∂b^(k) = lr / batch_size * sum(dz^(k))
         // where dz^(k) = ∂L/∂Z^(k)
         for (int i = 0; i < batch_size; i++) {
             float a = activation[i * height + row];
