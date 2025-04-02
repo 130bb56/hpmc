@@ -32,6 +32,8 @@ inline void cudaKernelAssert(const char *file, const int line, bool abort = true
     }
 }
 
+
+
 void init_layer_params(
     float *__restrict__ weight, 
     float *__restrict__ bias, 
@@ -51,25 +53,46 @@ void init_layer_params(
 }
 
 int main(int argc, char **argv) {
-    for (int i = 1; i < argc; i++) {
-        if (!strcmp(argv[i], "--debug")) {
-            debug = true;
-            std::cout << "Debug mode set: CUDA Async Error Checking Enabled" << std::endl;
-        }
-    }
-    auto start_time = std::chrono::system_clock::now();
     constexpr int val_length = 10000;
     constexpr int train_length = 60000;
     constexpr int input_size = 784;
     constexpr int num_class = 10;
     constexpr int block_size = 16;
     constexpr int epochs = 30;
-    constexpr int batch_size = 64;
     constexpr float lr = 0.03f;
-    std::cout << "test";
-    constexpr int layer1_dim = 320;
-    constexpr int layer2_dim = 160;
-    constexpr int layer3_dim = 10;
+    
+    // CLI args (default)
+    int batch_size = 64;
+    int layer1_dim = 320;
+    int layer2_dim = 160;
+    int layer3_dim = 10;
+
+    // Parse cli args
+    for (int i = 1; i < argc; i++) {
+        if (!strcmp(argv[i], "--debug")) {
+            debug = true;
+            std::cout << "Debug mode set: CUDA Async Error Checking Enabled" << std::endl;
+        }
+        if (!strncmp(argv[i], "--batch_size=", 13)) {
+            batch_size = std::stoi(argv[i] + 13);
+        }
+        if (!strncmp(argv[i], "--layer", 7)) {
+            if (!strncmp(argv[i] + 7, "1_dim=", 6)) {
+                layer1_dim = std::stoi(argv[i] + 13);
+            } else if (!strncmp(argv[i] + 7, "2_dim=", 6)) {
+                layer2_dim = std::stoi(argv[i] + 13);
+            } else if (!strncmp(argv[i] + 7, "3_dim=", 6)) {
+                layer3_dim = std::stoi(argv[i] + 13);
+            } else {
+                std::cout << "Bad args\n";
+                exit(EXIT_FAILURE);
+            }
+        }
+    }
+    // printf("batch_size = %d, layer_dim 1, 2, 3: %d, %d, %d\n", batch_size, layer1_dim, layer2_dim, layer2_dim);
+    auto start_time = std::chrono::system_clock::now();
+    // TODO: Add cli args for --batch_size
+
 
     dim3 dimGrid;
     dim3 dimBlock;
