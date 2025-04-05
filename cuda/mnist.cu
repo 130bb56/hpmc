@@ -64,12 +64,19 @@ int main(int argc, char **argv) {
     constexpr int num_class = 10;
     constexpr int block_size = 16;
     constexpr int epochs = 30;
-    constexpr int batch_size = 64;
-    constexpr float lr = 0.03f;
 
+    constexpr int batch_size = 128;
     constexpr int layer1_dim = 320;
     constexpr int layer2_dim = 160;
     constexpr int layer3_dim = 10;
+    constexpr float lr = 0.04f;
+
+    // print info
+    printf("batch_size = %d\n", batch_size);
+    printf("lr = %.3f\n", lr);
+    printf("layer1_dim = %d\n", layer1_dim);
+    printf("layer2_dim = %d\n", layer2_dim);
+    printf("layer3_dim = %d\n\n", layer3_dim);
 
     dim3 dimGrid;
     dim3 dimBlock;
@@ -108,6 +115,8 @@ int main(int argc, char **argv) {
         CHECK_ERROR(cudaMalloc((void **)&layer[i].a, batch_size * cur_dim * sizeof(float)));
     }
     CHECK_ERROR(cudaMalloc((void **)&loss_d, batch_size * sizeof(float)));
+
+
 
     float training_time = 0.0f;
     for (int epoch = 1; epoch <= epochs; epoch++) {

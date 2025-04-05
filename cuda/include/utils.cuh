@@ -39,7 +39,7 @@ inline int argmax(const float *__restrict__ arr, const int len) {
     return max_idx;
 }
 
-void read_dataset(const char *path, 
+inline void read_dataset(const char *path, 
     const int start, 
     const int length, 
     float *__restrict__ X, 

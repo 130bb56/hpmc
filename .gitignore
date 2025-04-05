@@ -6,3 +6,4 @@ signature.cu
 *.lib
 mnist-test.ipynb
 latex_render
+eval.py
