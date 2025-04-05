@@ -11,10 +11,10 @@
 ---
 
 ## Time Per Epoch
-<img src=../images/tpe.png width="600px">
+<img src=../images/tpe.png width="700px">
 
 ## GPU Utilization
-<img src=../images/gpu_util.png width="600px">
+<img src=../images/gpu_util.png width="700px">
 
 ## Validation Accuracy
-<img src=../images/acc.png width="600px">
+<img src=../images/acc.png width="700px">
