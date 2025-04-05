@@ -19,7 +19,7 @@ For the performance measurements, the CUDA implementation was executed through V
 | `mnist.ipynb` | 97.78%     | 1961ms  |34%      |145MiB    |
 | **`mnist.cu`**    | **97.84%** |**218ms**|**64%**  |**126MiB**|
 
-For more detailed evaluation results across various batch_size options, see [HPMC Evaluation](./eval/EVALUATION.md).
+For more detailed evaluation results across various `batch_size` options, see [HPMC Evaluation](./eval/EVALUATION.md).
 
 ## Configuration Strategy
 
