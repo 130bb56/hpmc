@@ -14,10 +14,10 @@ For the performance measurements, the CUDA implementation was executed through V
 - `Epochs = 30`, `batch_size = 64`, `lr = 0.03`
 - GPU Metrics: Collected log using `nvidia-smi --query-gpu=memory.used,memory.total,utilization.gpu --format=csv -l 1 > metric.log`
 
-| Configuration | Accuracy | Time per Epoch | GPU Utilization | GPU Memory Usage |
-|:-----------------:|:--------:|:--------------:|:-------:|:-------:|
-| `mnist.ipynb` | 97.78%     | 1961ms  |34%      |145MiB    |
-| **`mnist.cu`**    | **97.84%** |**218ms**|**64%**  |**126MiB**|
+| Configuration  | Accuracy   | Time per Epoch | GPU Utilization | GPU Memory Usage |
+|:--------------:|:----------:|:--------------:|:---------------:|:----------------:|
+| `mnist.ipynb`  | 97.78%     | 1961ms         |34%              |145MiB            |
+| **`mnist.cu`** | **97.84%** |**218ms**       |**64%**          |**126MiB**        |
 
 For more detailed evaluation results across various `batch_size` options, see [HPMC Evaluation](./eval/EVALUATION.md).
 
