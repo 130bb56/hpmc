@@ -9,6 +9,7 @@
                 "-O3",
                 "-DNDEBUG",
                 "-Xptxas=-O3",
+                // "--ptxas-options=-v",
                 // "--use_fast_math",
                 "-arch=sm_89",
                 "-maxrregcount=64",
