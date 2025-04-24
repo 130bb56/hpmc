@@ -1,6 +1,7 @@
 # Evaluation
 
 ## Experiment settings
+  - `input_size = 784`
   - `layer1_dim = 320`
   - `layer2_dim = 160`
   - `layer3_dim = 10`

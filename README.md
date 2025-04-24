@@ -12,7 +12,7 @@ For the performance measurements, the CUDA implementation was executed through V
 
 ### Experiment Settings
 - `Epochs = 30`, `batch_size = 64`, `lr = 0.03`
-- GPU Metrics: Collected log using `nvidia-smi --query-gpu=memory.used,memory.total,utilization.gpu --format=csv -l 1 > metric.log`
+- GPU Metrics: Collected log using `nvidia-smi --query-gpu=memory.used,utilization.gpu --format=csv -l 1 > metric.log`
 
 | Configuration  | Accuracy   | Time per Epoch | GPU Utilization | GPU Memory Usage |
 |:--------------:|:----------:|:--------------:|:---------------:|:----------------:|

@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
     constexpr int block_size = 16;
     constexpr int epochs = 30;
 
-    constexpr int batch_size = 128;
+    constexpr int batch_size = 64;
     constexpr int layer1_dim = 320;
     constexpr int layer2_dim = 160;
     constexpr int layer3_dim = 10;
@@ -90,8 +90,6 @@ int main(int argc, char **argv) {
 
     const char *train_path = "../data/mnist_train.csv";
     const char *val_path = "../data/mnist_test.csv";
-    // std::ifstream train_fin(train_path);
-    // std::ifstream val_fin(val_path);
 
     float *out_h = (float *)malloc(batch_size * layer3_dim * sizeof(float));
     float *loss_h = (float *)malloc(batch_size * sizeof(float));
@@ -337,6 +335,7 @@ int main(int argc, char **argv) {
             dimGrid = dim3(_ceil(batch_size, block_size), 1, 1);
             dimBlock = dim3(block_size, 1, 1);
             cross_entropy<<<dimGrid, dimBlock>>>(layer3_dim, batch_size, layer[3].a, label, loss_d);
+            CHECK_KERNEL_ERROR();
 
             CHECK_ERROR(cudaDeviceSynchronize());
             CHECK_ERROR(cudaMemcpy(out_h, layer[3].a, batch_size * layer3_dim * sizeof(float), cudaMemcpyDeviceToHost));
