@@ -69,7 +69,7 @@ int main(int argc, char **argv) {
     constexpr int layer1_dim = 320;
     constexpr int layer2_dim = 160;
     constexpr int layer3_dim = 10;
-    constexpr float lr = 0.04f;
+    constexpr float lr = 0.03f;
 
     // print info
     printf("batch_size = %d\n", batch_size);
