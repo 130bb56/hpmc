@@ -25,8 +25,7 @@ HPMC는 PyTorch 대비 **최대 8배 빠른 학습 속도**를 달성한 C++ CUD
 - Bottleneck을 찾기 위해 Kernel execution latency 정보를 출력하는 Profiling 사용의 필요성을 느낌
     - 기존 `nvprof`는 deprecated, `ncu (Nsight Compute)`는 과다한 GPU metric 제공
     - CUDA Event 기반 Custom Profiler 직접 구현
-    <img src="../images/custom_profiler.png" style="page-break-inside: avoid; display: block; max-width: 70%; margin-top: 5px; margin-bottom: 10px;"/>
-    
+      <img src="../images/custom_profiler.png" style="page-break-inside: avoid; display: block; max-width: 70%; margin-top: 5px; margin-bottom: 10px;"/>
     - 원본 코드에 대해 매번 Kernel을 Timer로 Wrap하고, header를 include 후 Global하게 Kernel Timer Instance를 선언해야 하는 문제 발생
 
       ```cpp
