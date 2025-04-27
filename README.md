@@ -4,7 +4,7 @@
 
 HPMC is a C++/CUDA implementation of an MLP for MNIST classification, achieving up to **8× training speedup** compared to the PyTorch baseline on an RTX 4060 Laptop GPU. The training pipeline was built from scratch without relying on high-level libraries such as `cuBLAS` or `CUTLASS`.
 The model is a 2-hidden-layer MLP (784 &rightarrow; 320 &rightarrow; 160 &rightarrow; 10) for MNIST digit classification.
-For the performance measurements, the CUDA implementation was executed through Visual Studio Code (see `.vscode` for configuration details), while the PyTorch baseline was run in a Jupyter Notebook environment.
+For the performance measurements, the CUDA implementation was executed through Visual Studio Code (see `.vscode` for configuration details), while the PyTorch baseline was run in a Jupyter Notebook environment. For the Korean explanation, please refer to `hpmc.md` or `hpmc.pdf` in the [portfolio directory](./portfolio/).
 
 **Note**: For implementation simplicity, the last batch is omitted in both `mnist.cu` and `mnist.ipynb`. 
 
@@ -14,10 +14,10 @@ For the performance measurements, the CUDA implementation was executed through V
 - `Epochs = 30`, `batch_size = 64`, `lr = 0.03`
 - GPU Metrics: Collected log using `nvidia-smi --query-gpu=memory.used,utilization.gpu --format=csv -l 1 > metric.log`
 
-| Configuration  | Accuracy   | Time per Epoch | GPU Utilization | GPU Memory Usage |
-|:--------------:|:----------:|:--------------:|:---------------:|:----------------:|
-| `mnist.ipynb`  | 97.78%     | 1798ms         |34%              |145MiB            |
-| **`mnist.cu`** | **97.84%** |**218ms**       |**64%**          |**126MiB**        |
+| Configuration | Accuracy | Time per Epoch | GPU Utilization | GPU Memory Usage |
+|:-----------------:|:--------:|:--------------:|:-------:|:-------:|
+| `mnist.ipynb` | 97.78%     | 1798ms  |33%      |145MiB    |
+| **`mnist.cu`**    | **97.84%** |**218ms**|**66%**  |**126MiB**|
 
 For more detailed evaluation results across various `batch_size` options, see [HPMC Evaluation](./eval/EVALUATION.md).
 
