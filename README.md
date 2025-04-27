@@ -16,7 +16,7 @@ For the performance measurements, the CUDA implementation was executed through V
 
 | Configuration  | Accuracy   | Time per Epoch | GPU Utilization | GPU Memory Usage |
 |:--------------:|:----------:|:--------------:|:---------------:|:----------------:|
-| `mnist.ipynb`  | 97.78%     | 1961ms         |34%              |145MiB            |
+| `mnist.ipynb`  | 97.78%     | 1798ms         |34%              |145MiB            |
 | **`mnist.cu`** | **97.84%** |**218ms**       |**64%**          |**126MiB**        |
 
 For more detailed evaluation results across various `batch_size` options, see [HPMC Evaluation](./eval/EVALUATION.md).
