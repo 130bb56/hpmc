@@ -27,7 +27,6 @@ HPMC는 PyTorch 대비 **최대 8배 빠른 학습 속도**를 달성한 C++ CUD
     - CUDA Event 기반 Custom Profiler 직접 구현
       <img src="../images/custom_profiler.png" style="page-break-inside: avoid; display: block; max-width: 70%; margin-top: 5px; margin-bottom: 10px;"/>
     - 원본 코드에 대해 매번 Kernel을 Timer로 Wrap하고, header를 include 후 Global하게 Kernel Timer Instance를 선언해야 하는 문제 발생
-
       ```cpp
       #include "../profile/profile.cuh"
       ...
@@ -38,7 +37,6 @@ HPMC는 PyTorch 대비 **최대 8배 빠른 학습 속도**를 달성한 C++ CUD
       CHECK_KERNEL_ERROR();
       kernel.stop_timing();
       ```
-      
     - 앞의 과정을 자동화하여 Kernel을 `Regex`로 패턴매칭하여 Kernel 시간 측정 및 출력하는 스크립트 구현
 
 #### 3) 후기
